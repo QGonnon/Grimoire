@@ -15,11 +15,11 @@ import SaveTab from './components/tabs/SaveTab.vue';
 type TabId = 'profile' | 'tasks' | 'skills' | 'classes' | 'dungeons' | 'save';
 
 const tabs: { id: TabId; label: string }[] = [
-  { id: 'profile', label: 'Profil' },
   { id: 'tasks', label: 'Tâches' },
   { id: 'skills', label: 'Compétences' },
   { id: 'classes', label: 'Classes' },
   { id: 'dungeons', label: 'Donjons' },
+  { id: 'profile', label: 'Profil' },
   { id: 'save', label: 'Sauvegarde' },
 ];
 

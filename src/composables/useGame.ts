@@ -150,13 +150,34 @@ function mergeMods(into: ParsedMods, from: ParsedMods) {
   for (const k in from.skillRate) into.skillRate[k] = (into.skillRate[k] ?? 0) + from.skillRate[k];
 }
 
+function scaleMods(mods: ParsedMods, factor: number): ParsedMods {
+  const scale = (rec: Record<string, number>) =>
+    Object.fromEntries(Object.entries(rec).map(([k, v]) => [k, v * factor]));
+  return {
+    resourceMax: scale(mods.resourceMax),
+    resourceRate: scale(mods.resourceRate),
+    skillMax: scale(mods.skillMax),
+    skillRate: scale(mods.skillRate),
+    virtue: mods.virtue * factor,
+    evilamt: mods.evilamt * factor,
+  };
+}
+
 function getAggregatedMods(): ParsedMods {
   const combined: ParsedMods = { resourceMax: {}, resourceRate: {}, skillMax: {}, skillRate: {}, virtue: 0, evilamt: 0 };
+  // Class mods are flat - classes don't have levels, just owned/not owned.
   for (const id of ownedClassIds()) mergeMods(combined, parseMods(CLASS_MAP[id].mod, RESOURCE_IDS, SKILL_IDS));
+  // Skill mods scale with the skill's own current level, applied retroactively:
+  // as a skill levels up, its contribution to caps/rates grows immediately,
+  // it isn't frozen at whatever it was when the skill was first unlocked.
+  // Uses the base (xp-derived) level, not effectiveSkillLevel, to avoid a
+  // circular dependency (effectiveSkillLevel reads this function's output).
   for (const id of Object.keys(state.skillsUnlocked) as SkillId[]) {
     if (!state.skillsUnlocked[id]) continue;
     const def = SKILL_MAP[id];
-    if (def) mergeMods(combined, parseMods(def.mod, RESOURCE_IDS, SKILL_IDS));
+    if (!def) continue;
+    const level = skillLevel(state.skillXp[id] ?? 0);
+    mergeMods(combined, scaleMods(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS), level));
   }
   return combined;
 }

@@ -17,6 +17,7 @@ import { EVENTS, EVENT_MAP } from '../data/events';
 import { MONSTER_MAP } from '../data/monsters';
 import { ENCOUNTER_MAP } from '../data/encounters';
 import { evalExpr, parseMods, type ParsedMods } from '../engine/expr';
+import { formatNumber } from '../utils/format';
 
 const SAVE_KEY = 'grimoire_save_v2';
 
@@ -30,6 +31,7 @@ function createInitialState(): GameState {
   for (const id of SKILL_IDS) skillXp[id] = 0;
 
   return {
+    playerName: 'Oz',
     resources,
     skillXp,
     skillsUnlocked: {},
@@ -78,10 +80,35 @@ export function tierMax(): number {
   return max;
 }
 
-export function playerLevel(): number {
+const LEVELS_PER_SKILL_POINT = 5;
+
+/** Sum of every skill's current level - the underlying "experience" pool the
+ *  player level and its progress bar are derived from. */
+export function totalSkillLevels(): number {
   let sum = 0;
   for (const id of SKILL_IDS) sum += skillLevel(state.skillXp[id] ?? 0);
-  return 1 + Math.floor(sum / 5);
+  return sum;
+}
+
+export function playerLevel(): number {
+  return 1 + Math.floor(totalSkillLevels() / LEVELS_PER_SKILL_POINT);
+}
+
+/** Progress toward the next player level, for an XP bar. */
+export function levelProgress(): { current: number; needed: number; percent: number } {
+  const total = totalSkillLevels();
+  const level = playerLevel();
+  const floor = (level - 1) * LEVELS_PER_SKILL_POINT;
+  const current = total - floor;
+  return {
+    current,
+    needed: LEVELS_PER_SKILL_POINT,
+    percent: Math.min(100, (current / LEVELS_PER_SKILL_POINT) * 100),
+  };
+}
+
+export function setPlayerName(name: string) {
+  state.playerName = name.trim().slice(0, 30);
 }
 
 function buildG(): Record<string, unknown> {
@@ -215,6 +242,14 @@ export function currentDay(): number {
 export function addJournal(text: string) {
   state.journal.unshift({ id: state.journalSeq++, day: currentDay(), text });
   if (state.journal.length > 200) state.journal.length = 200;
+}
+
+/** Formats resource deltas as a parenthesized suffix, e.g. " (+15 ☉, -5 ⚡)". */
+function gainsLabel(gains: Partial<Record<ResourceId, number>>): string {
+  const entries = (Object.entries(gains) as [ResourceId, number][]).filter(([, amt]) => Math.abs(amt) >= 0.005);
+  if (entries.length === 0) return '';
+  const parts = entries.map(([res, amt]) => `${amt >= 0 ? '+' : ''}${formatNumber(amt)} ${RESOURCE_MAP[res]?.symbol ?? res}`);
+  return ` (${parts.join(', ')})`;
 }
 
 function canAfford(cost: Partial<Record<ResourceId, number>>): boolean {
@@ -428,18 +463,24 @@ function resolveEncounter(def: DungeonDef) {
     addJournal(`${isBossFight ? 'Un gardien' : 'Une créature'} surgit dans ${def.name} : ${monster.name} !`);
   } else if (Math.random() < 0.5 && def.encounterIds.length > 0) {
     const enc = ENCOUNTER_MAP[def.encounterIds[Math.floor(Math.random() * def.encounterIds.length)]];
+    const gained: Partial<Record<ResourceId, number>> = {};
     for (const loot of enc.loot ?? []) {
-      if (Math.random() <= (loot.chance ?? 1)) addResource(loot.resource, loot.min + Math.random() * (loot.max - loot.min));
+      if (Math.random() <= (loot.chance ?? 1)) {
+        const amount = loot.min + Math.random() * (loot.max - loot.min);
+        addResource(loot.resource, amount);
+        gained[loot.resource] = (gained[loot.resource] ?? 0) + amount;
+      }
     }
     for (const sx of enc.skillXp ?? []) addSkillXp(sx.skill, sx.amount);
-    addJournal(`${enc.name} — ${enc.text}`);
+    addJournal(`${enc.name} — ${enc.text}${gainsLabel(gained)}`);
     prog.encountersDone++;
     prog.bar = 0;
     checkDungeonCompletion(def);
   } else {
     const entry = def.loot[Math.floor(Math.random() * def.loot.length)];
-    addResource(entry.resource, entry.min + Math.random() * (entry.max - entry.min));
-    addJournal(`Vous découvrez du butin dans ${def.name}.`);
+    const amount = entry.min + Math.random() * (entry.max - entry.min);
+    addResource(entry.resource, amount);
+    addJournal(`Vous découvrez du butin dans ${def.name}.${gainsLabel({ [entry.resource]: amount })}`);
     prog.encountersDone++;
     prog.bar = 0;
     checkDungeonCompletion(def);
@@ -497,7 +538,7 @@ export function resolveEventChoice(choiceIndex: number) {
   (Object.entries(choice.effect) as [ResourceId, number][]).forEach(([res, amt]) => addResource(res, amt));
   if (choice.virtueDelta) state.virtue = clamp(state.virtue + choice.virtueDelta, 0, 999);
   if (choice.evilDelta) state.evilamt = clamp(state.evilamt + choice.evilDelta, 0, 999);
-  addJournal(`${event.title} — ${choice.resultText}`);
+  addJournal(`${event.title} — ${choice.resultText}${gainsLabel(choice.effect)}`);
   state.activeEventId = null;
 }
 
@@ -522,6 +563,7 @@ export function doPrestige() {
   const gained = essenceOnPrestige();
   const newEssence = state.essence + gained;
   const fresh = createInitialState();
+  fresh.playerName = state.playerName;
   fresh.essence = newEssence;
   fresh.virtue = state.virtue;
   fresh.evilamt = state.evilamt;

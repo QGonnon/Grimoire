@@ -200,6 +200,7 @@ export interface JournalEntry {
 }
 
 export interface GameState {
+  playerName: string;
   resources: Record<ResourceId, number>;
   skillXp: Record<SkillId, number>;
   skillsUnlocked: Partial<Record<SkillId, boolean>>;

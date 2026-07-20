@@ -34,7 +34,7 @@ const tierName = computed(() => {
     </svg>
     <div class="header-titles">
       <h1>Grimoire — L'ascension d'un mage</h1>
-      <div class="subtitle">De palefrenier à archimage</div>
+      <div class="subtitle">{{ state.playerName ? `${state.playerName}, ${tierName.toLowerCase()}` : 'De palefrenier à archimage' }}</div>
     </div>
     <div class="header-meta">
       <span class="tier-badge">{{ tierName }}</span>

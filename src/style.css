@@ -120,7 +120,7 @@ button:disabled {
   flex: 1;
   gap: 1.5rem;
   padding: 1.5rem;
-  max-width: 1400px;
+  max-width: 1700px;
   margin: 0 auto;
   width: 100%;
 }
@@ -138,6 +138,25 @@ button:disabled {
 .content {
   flex: 1;
   min-width: 0;
+}
+
+.journal-sidebar {
+  flex: 0 0 300px;
+  position: sticky;
+  top: 1rem;
+  align-self: flex-start;
+  max-height: calc(100vh - 2rem);
+}
+
+.journal-sidebar .card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.journal-feed {
+  overflow-y: auto;
+  padding-right: 0.4rem;
 }
 
 /* ---------- Header ---------- */
@@ -256,6 +275,53 @@ button:disabled {
 
 .cost-negative {
   color: var(--ember);
+}
+
+/* ---------- Profile ---------- */
+
+.profile-name-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.profile-name-input {
+  flex: 1;
+  background: var(--bg-panel-alt);
+  color: var(--text-main);
+  border: 1px solid var(--border-arcane);
+  border-radius: 6px;
+  padding: 0.5em 0.7em;
+  font-family: 'Crimson Pro', serif;
+  font-size: 0.95rem;
+}
+
+.profile-name-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.level-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.level-badge {
+  font-family: 'Cinzel', serif;
+  color: var(--gold-bright);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.level-bar > div {
+  background: linear-gradient(90deg, var(--gold), var(--violet));
+}
+
+.level-value {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .card-footer {
@@ -684,12 +750,17 @@ section.tab-panel {
   margin-top: 1.2rem;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1150px) {
   .app-main {
     flex-direction: column;
   }
-  .sidebar {
+  .sidebar,
+  .journal-sidebar {
     position: static;
     flex: none;
+    max-height: none;
+  }
+  .journal-sidebar .card {
+    max-height: 60vh;
   }
 }

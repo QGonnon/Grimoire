@@ -50,6 +50,7 @@ function createInitialState(): GameState {
       bar: 0,
       encountersDone: 0,
       inCombat: false,
+      isBoss: false,
       monsterId: null,
       monsterHp: 0,
       monsterMaxHp: 0,
@@ -420,6 +421,7 @@ export function switchDungeon(id: string) {
       bar: 0,
       encountersDone: 0,
       inCombat: false,
+      isBoss: false,
       monsterId: null,
       monsterHp: 0,
       monsterMaxHp: 0,
@@ -458,6 +460,7 @@ function checkDungeonCompletion(def: DungeonDef) {
     bar: 0,
     encountersDone: 0,
     inCombat: false,
+    isBoss: false,
     monsterId: null,
     monsterHp: 0,
     monsterMaxHp: 0,
@@ -478,6 +481,7 @@ function resolveEncounter(def: DungeonDef) {
     }
     const hp = isBossFight ? Math.round(monster.hp * 1.5) : monster.hp;
     prog.inCombat = true;
+    prog.isBoss = isBossFight;
     prog.monsterId = monsterId;
     prog.monsterMaxHp = hp;
     prog.monsterHp = hp;
@@ -517,11 +521,20 @@ function tickDungeon() {
     prog.monsterHp -= playerPower();
     if (prog.monsterHp <= 0) {
       const monster = prog.monsterId ? MONSTER_MAP[prog.monsterId] : null;
+      const rolls = prog.isBoss ? 2 : 1;
+      const gained: Partial<Record<ResourceId, number>> = {};
+      for (let i = 0; i < rolls && def.loot.length > 0; i++) {
+        const entry = def.loot[Math.floor(Math.random() * def.loot.length)];
+        const amount = entry.min + Math.random() * (entry.max - entry.min);
+        addResource(entry.resource, amount);
+        gained[entry.resource] = (gained[entry.resource] ?? 0) + amount;
+      }
       prog.inCombat = false;
+      prog.isBoss = false;
       prog.monsterId = null;
       prog.encountersDone++;
       prog.bar = 0;
-      addJournal(`Vous triomphez de ${monster?.name ?? 'la créature'} dans ${def.name}.`);
+      addJournal(`Vous triomphez de ${monster?.name ?? 'la créature'} dans ${def.name}.${gainsLabel(gained)}`);
       checkDungeonCompletion(def);
     }
     return;

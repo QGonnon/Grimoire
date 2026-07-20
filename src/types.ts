@@ -188,6 +188,7 @@ export interface DungeonProgress {
   bar: number;
   encountersDone: number;
   inCombat: boolean;
+  isBoss: boolean;
   monsterId: MonsterId | null;
   monsterHp: number;
   monsterMaxHp: number;

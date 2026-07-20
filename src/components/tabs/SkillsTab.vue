@@ -8,10 +8,12 @@ import {
   canUnlockSkill,
   unlockSkill,
 } from '../../composables/useGame';
-import { SKILLS, xpForLevel, skillLevel } from '../../data/skills';
-import { RESOURCE_MAP } from '../../data/resources';
+import { SKILLS, SKILL_MAP, xpForLevel, skillLevel } from '../../data/skills';
+import { RESOURCE_MAP, RESOURCE_IDS } from '../../data/resources';
+import { SKILL_IDS } from '../../data/skills';
+import { parseMods } from '../../engine/expr';
 import { formatNumber } from '../../utils/format';
-import type { ResourceId } from '../../types';
+import type { ModMap, ResourceId } from '../../types';
 
 function progressPercent(id: string): number {
   const level = effectiveSkillLevel(id);
@@ -30,6 +32,21 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${formatNumber(amt)}`).join('  ·  ');
 }
 
+function resultList(result: Partial<Record<ResourceId, number>>): string[] {
+  const entries = Object.entries(result) as [ResourceId, number][];
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? res} +${formatNumber(amt)}`);
+}
+
+function modList(mod: ModMap): string[] {
+  const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
+  const parts: string[] = [];
+  for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${Math.round(v * 100)}%`);
+  for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} max +${formatNumber(v)}`);
+  for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${formatNumber(v)}`);
+  for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${Math.round(v * 100)}%`);
+  return parts;
+}
+
 const visibleSkills = computed(() => SKILLS.filter((s) => skillUnlocked(s.id) || skillRequirementMet(s.id)));
 const lockedCount = computed(() => SKILLS.length - visibleSkills.value.length);
 </script>
@@ -44,6 +61,18 @@ const lockedCount = computed(() => SKILLS.length - visibleSkills.value.length);
       <div v-for="skill in visibleSkills" :key="skill.id" class="card" :class="{ owned: skillUnlocked(skill.id) }">
         <h3>{{ skill.name }}</h3>
         <p class="desc">{{ skill.description }}</p>
+        <div v-if="resultList(skill.result).length" class="stats-group">
+          <span class="stats-label">Gains</span>
+          <ul class="stats-list">
+            <li v-for="(r, i) in resultList(skill.result)" :key="i">{{ r }}</li>
+          </ul>
+        </div>
+        <div v-if="modList(skill.mod).length" class="stats-group">
+          <span class="stats-label">Modificateurs (par niveau)</span>
+          <ul class="stats-list">
+            <li v-for="(m, i) in modList(skill.mod)" :key="i">{{ m }}</li>
+          </ul>
+        </div>
         <template v-if="skillUnlocked(skill.id)">
           <div class="progress-bar">
             <div :style="{ width: progressPercent(skill.id) + '%' }"></div>

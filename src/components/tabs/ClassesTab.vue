@@ -14,14 +14,14 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? '?'} ${formatNumber(amt)}`).join('  ·  ');
 }
 
-function bonusLabel(mod: Record<string, number | string>): string {
+function bonusList(mod: Record<string, number | string>): string[] {
   const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
   const parts: string[] = [];
   for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${Math.round(v * 100)}%`);
-  for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} plafond +${formatNumber(v)}`);
+  for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} max +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${Math.round(v * 100)}%`);
-  return parts.length ? parts.join('  ·  ') : 'Aucun bonus direct';
+  return parts;
 }
 
 function alignmentLabel(mod: Record<string, number | string>): string | null {
@@ -66,9 +66,13 @@ function visible(c: (typeof CLASSES)[number]): boolean {
           >
             <h3>{{ c.name }}<span v-if="c.secret" class="badge" style="margin-left: 0.5em">secrète</span></h3>
             <p class="desc">{{ c.description }}</p>
-            <div class="stats">
-              <span>{{ bonusLabel(c.mod) }}</span>
+            <div v-if="bonusList(c.mod).length" class="stats-group">
+              <span class="stats-label">Modificateurs</span>
+              <ul class="stats-list">
+                <li v-for="(b, i) in bonusList(c.mod)" :key="i">{{ b }}</li>
+              </ul>
             </div>
+            <p v-else class="desc">Aucun bonus direct</p>
             <p v-if="alignmentLabel(c.mod)" class="desc" style="color: var(--ember)">
               {{ alignmentLabel(c.mod) }} à l'adoption
             </p>

@@ -29,7 +29,7 @@ export const SKILLS: SkillDef[] = [
     require: '',
     unlockCost: { research: 20 },
     cost: { energy: 0.2 },
-    result: { arcana: 1 },
+    result: { arcana: 0.1 },
     mod: { 'research.max': 5, 'arcana.max': 1 },
   },
   {

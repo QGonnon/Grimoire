@@ -254,6 +254,10 @@ button:disabled {
   gap: 0.9rem;
 }
 
+.cost-negative {
+  color: var(--ember);
+}
+
 .card-footer {
   display: flex;
   justify-content: space-between;

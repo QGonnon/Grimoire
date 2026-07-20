@@ -11,6 +11,7 @@ import {
 import { DUNGEONS, DUNGEON_MAP } from '../../data/dungeons';
 import { MONSTER_MAP } from '../../data/monsters';
 import { RESOURCE_MAP } from '../../data/resources';
+import { formatNumber } from '../../utils/format';
 import ConfirmModal from '../ConfirmModal.vue';
 
 const pendingDungeonId = ref<string | null>(null);
@@ -24,7 +25,7 @@ const activeMonster = computed(() =>
 );
 
 function lootLabel(def: (typeof DUNGEONS)[number]): string {
-  return def.loot.map((l) => `${RESOURCE_MAP[l.resource]?.symbol ?? '?'} ${l.min}-${l.max}`).join('  ·  ');
+  return def.loot.map((l) => `${RESOURCE_MAP[l.resource]?.symbol ?? '?'} ${formatNumber(l.min)}-${formatNumber(l.max)}`).join('  ·  ');
 }
 
 function bossName(def: (typeof DUNGEONS)[number]): string {
@@ -52,8 +53,8 @@ function confirmSwitch() {
       <p class="desc">{{ activeDungeon.description || activeDungeon.flavor }}</p>
       <div class="stats">
         <span>Rencontres : {{ state.dungeonProgress.encountersDone }} / {{ activeDungeon.encountersRequired }}</span>
-        <span>Puissance : {{ playerPower().toFixed(1) }}</span>
-        <span v-if="state.isExploring">Coût : {{ activeDungeon.energyCostPerSecond }} ⚡/s</span>
+        <span>Puissance : {{ formatNumber(playerPower()) }}</span>
+        <span v-if="state.isExploring" class="cost-negative">Coût : {{ formatNumber(activeDungeon.energyCostPerSecond) }} ⚡/s</span>
         <span v-else class="badge">En pause</span>
       </div>
 
@@ -62,7 +63,7 @@ function confirmSwitch() {
         <div class="monster-hp-track">
           <div :style="{ width: (state.dungeonProgress.monsterHp / state.dungeonProgress.monsterMaxHp) * 100 + '%' }"></div>
         </div>
-        <p class="badge">PV : {{ Math.max(0, Math.ceil(state.dungeonProgress.monsterHp)) }} / {{ state.dungeonProgress.monsterMaxHp }} — {{ activeMonster.attackName }} ({{ activeMonster.damageMin }}-{{ activeMonster.damageMax }})</p>
+        <p class="badge">PV : {{ formatNumber(Math.max(0, Math.ceil(state.dungeonProgress.monsterHp))) }} / {{ formatNumber(state.dungeonProgress.monsterMaxHp) }} — {{ activeMonster.attackName }} ({{ formatNumber(activeMonster.damageMin) }}-{{ formatNumber(activeMonster.damageMax) }})</p>
       </template>
       <template v-else>
         <div class="bar-fill-track">

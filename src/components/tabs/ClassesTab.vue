@@ -5,20 +5,21 @@ import { CLASSES, TIER_LABELS } from '../../data/classes';
 import { RESOURCE_MAP, RESOURCE_IDS } from '../../data/resources';
 import { SKILL_MAP, SKILL_IDS } from '../../data/skills';
 import { parseMods } from '../../engine/expr';
+import { formatNumber } from '../../utils/format';
 import type { ResourceId } from '../../types';
 
 function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   const entries = Object.entries(cost) as [ResourceId, number][];
   if (entries.length === 0) return 'Gratuit';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? '?'} ${amt}`).join('  ·  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? '?'} ${formatNumber(amt)}`).join('  ·  ');
 }
 
 function bonusLabel(mod: Record<string, number | string>): string {
   const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
   const parts: string[] = [];
   for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${Math.round(v * 100)}%`);
-  for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} plafond +${v}`);
-  for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${v}`);
+  for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} plafond +${formatNumber(v)}`);
+  for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${Math.round(v * 100)}%`);
   return parts.length ? parts.join('  ·  ') : 'Aucun bonus direct';
 }
@@ -26,8 +27,8 @@ function bonusLabel(mod: Record<string, number | string>): string {
 function alignmentLabel(mod: Record<string, number | string>): string | null {
   const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
   const parts: string[] = [];
-  if (parsed.virtue) parts.push(`Vertu +${parsed.virtue}`);
-  if (parsed.evilamt) parts.push(`Corruption +${parsed.evilamt}`);
+  if (parsed.virtue) parts.push(`Vertu +${formatNumber(parsed.virtue)}`);
+  if (parsed.evilamt) parts.push(`Corruption +${formatNumber(parsed.evilamt)}`);
   return parts.length ? parts.join('  ·  ') : null;
 }
 

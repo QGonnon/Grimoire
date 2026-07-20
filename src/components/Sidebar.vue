@@ -12,6 +12,7 @@ import {
 import { RESOURCES } from '../data/resources';
 import { SKILL_MAP } from '../data/skills';
 import { CLASS_MAP } from '../data/classes';
+import { formatNumber } from '../utils/format';
 import type { ResourceCategory, ResourceId } from '../types';
 
 const CATEGORY_LABELS: Record<ResourceCategory, string> = {
@@ -69,8 +70,8 @@ const ownedClasses = computed(() =>
         <div v-for="r in group.resources" :key="r.id" class="resource-row">
           <span class="r-name">{{ r.symbol }} {{ r.name }}</span>
           <span class="r-values">
-            {{ Math.floor(state.resources[r.id]) }} / {{ Math.floor(resourceCap(r.id)) }}
-            <span v-if="(passiveRates[r.id] ?? 0) > 0" class="r-rate">+{{ (passiveRates[r.id] ?? 0).toFixed(2) }}/s</span>
+            {{ formatNumber(Math.floor(state.resources[r.id])) }} / {{ r.uncapped ? '∞' : formatNumber(Math.floor(resourceCap(r.id))) }}
+            <span v-if="(passiveRates[r.id] ?? 0) > 0" class="r-rate">+{{ formatNumber(passiveRates[r.id] ?? 0) }}/s</span>
           </span>
         </div>
       </template>
@@ -81,15 +82,15 @@ const ownedClasses = computed(() =>
       <div class="align-row">
         <span class="align-label virtue">Vertu</span>
         <div class="progress-bar align-bar"><div :style="{ width: virtuePercent + '%' }"></div></div>
-        <span class="mono align-value">{{ Math.floor(state.virtue) }}</span>
+        <span class="mono align-value">{{ formatNumber(Math.floor(state.virtue)) }}</span>
       </div>
       <div class="align-row">
         <span class="align-label evil">Corruption</span>
         <div class="progress-bar align-bar evil"><div :style="{ width: evilPercent + '%' }"></div></div>
-        <span class="mono align-value">{{ Math.floor(state.evilamt) }}</span>
+        <span class="mono align-value">{{ formatNumber(Math.floor(state.evilamt)) }}</span>
       </div>
       <div v-if="state.essence > 0" class="essence-line" style="margin-top: 0.6rem">
-        ✧ Essence Arcanique : {{ state.essence }}
+        ✧ Essence Arcanique : {{ formatNumber(state.essence) }}
       </div>
     </div>
 

@@ -20,7 +20,8 @@ import { SKILLS, SKILL_MAP } from '../../data/skills';
 import { ACTIVE_TASKS } from '../../data/tasks';
 import { SHOP_ITEMS } from '../../data/shop';
 import { RESOURCE_MAP } from '../../data/resources';
-import type { ResourceId } from '../../types';
+import { formatNumber } from '../../utils/format';
+import type { ResourceId, ShopItemDef } from '../../types';
 import ConfirmModal from '../ConfirmModal.vue';
 
 const slots = computed(() => Array.from({ length: slotsAvailable() }, (_, i) => i));
@@ -42,13 +43,38 @@ function resultLabel(skillId: string): string {
   if (!def) return '';
   const entries = Object.entries(def.result) as [ResourceId, number][];
   if (entries.length === 0) return '';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${(amt * productionMultiplier(res, skillId)).toFixed(2)}/s`).join('  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} +${formatNumber(amt * productionMultiplier(res, skillId))}/s`).join('  ');
+}
+
+function skillCostLabel(skillId: string): string {
+  const def = SKILL_MAP[skillId];
+  if (!def) return '';
+  const entries = Object.entries(def.cost) as [ResourceId, number][];
+  if (entries.length === 0) return '';
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} -${formatNumber(amt)}/s`).join('  ');
+}
+
+function slotOptionLabel(skillId: string): string {
+  const parts = [resultLabel(skillId), skillCostLabel(skillId)].filter(Boolean);
+  return parts.length ? `(${parts.join('  ·  ')})` : '';
 }
 
 function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   const entries = Object.entries(cost) as [ResourceId, number][];
   if (entries.length === 0) return 'Gratuit';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${amt}`).join('  ·  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${formatNumber(amt)}`).join('  ·  ');
+}
+
+function shopEffectLabel(item: ShopItemDef): string {
+  const parts: string[] = [];
+  for (const [res, amt] of Object.entries(item.effect.productionBonus ?? {}) as [ResourceId, number][]) {
+    parts.push(`${RESOURCE_MAP[res]?.name ?? res} +${Math.round(amt * 100)}%`);
+  }
+  if (item.effect.skillXpBonus) parts.push(`Apprentissage +${Math.round(item.effect.skillXpBonus * 100)}%`);
+  if (item.effect.eventSafety) parts.push(`Sécurité événementielle +${Math.round(item.effect.eventSafety * 100)}%`);
+  if (item.effect.energyCapBonus) parts.push(`Vigueur max +${formatNumber(item.effect.energyCapBonus)}`);
+  if (item.effect.unlocksPrestige) parts.push('Débloque la Réincarnation Arcanique');
+  return parts.length ? parts.join('  ·  ') : 'Aucun bonus direct';
 }
 </script>
 
@@ -70,12 +96,18 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
               :value="skill.id"
               :disabled="skillInOtherSlot(skill.id, slot)"
             >
-              {{ skill.name }} {{ resultLabel(skill.id) ? `(${resultLabel(skill.id)})` : '' }}
+              {{ skill.name }} {{ slotOptionLabel(skill.id) }}
             </option>
           </select>
-          <p v-if="state.passiveAssignments[slot]" class="desc" style="margin-top: 0.5rem">
-            {{ SKILL_MAP[state.passiveAssignments[slot] ?? '']?.description }}
-          </p>
+          <template v-if="state.passiveAssignments[slot]">
+            <p class="desc" style="margin-top: 0.5rem">
+              {{ SKILL_MAP[state.passiveAssignments[slot] ?? '']?.description }}
+            </p>
+            <div class="stats">
+              <span v-if="resultLabel(state.passiveAssignments[slot] ?? '')">{{ resultLabel(state.passiveAssignments[slot] ?? '') }}</span>
+              <span v-if="skillCostLabel(state.passiveAssignments[slot] ?? '')" class="cost-negative">{{ skillCostLabel(state.passiveAssignments[slot] ?? '') }}</span>
+            </div>
+          </template>
           <p v-if="availableSkills.length === 0" class="desc" style="margin-top: 0.5rem">
             Aucune compétence débloquée pour l'instant — direction l'onglet Compétences.
           </p>
@@ -98,8 +130,8 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
           <h3>{{ task.name }}</h3>
           <p class="desc">{{ task.description }}</p>
           <div class="stats">
-            <span>Gain : {{ RESOURCE_MAP[task.resource]?.symbol }} +{{ (task.baseAmount * productionMultiplier(task.resource, (task.skill || '') as any)).toFixed(1) }}</span>
-            <span>Coût : {{ costLabel(task.cost) }}</span>
+            <span>Gain : {{ RESOURCE_MAP[task.resource]?.symbol }} +{{ formatNumber(task.baseAmount * productionMultiplier(task.resource, (task.skill || '') as any)) }}</span>
+            <span class="cost-negative">Coût : {{ costLabel(task.cost) }}</span>
             <span>Repos : {{ task.cooldown }}s</span>
           </div>
           <div class="card-footer">
@@ -125,6 +157,9 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
         >
           <h3>{{ item.name }}</h3>
           <p class="desc">{{ item.description }}</p>
+          <div class="stats">
+            <span>{{ shopEffectLabel(item) }}</span>
+          </div>
           <div class="card-footer">
             <span class="badge gold">{{ costLabel(item.cost) }}</span>
             <button
@@ -151,7 +186,7 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
           les vies. Votre alignement (vertu/corruption) est conservé.
         </p>
         <div class="card-footer">
-          <span class="essence-line">Essence gagnée à la réincarnation : +{{ essenceOnPrestige() }}</span>
+          <span class="essence-line">Essence gagnée à la réincarnation : +{{ formatNumber(essenceOnPrestige()) }}</span>
           <button class="btn btn-danger" @click="showPrestigeConfirm = true">Se réincarner</button>
         </div>
       </div>

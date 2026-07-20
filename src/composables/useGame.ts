@@ -384,11 +384,28 @@ export function playerPower(): number {
 
 function checkDungeonCompletion(def: DungeonDef) {
   const prog = state.dungeonProgress;
-  if (prog.encountersDone >= def.encountersRequired && !state.dungeonsCompleted[def.id]) {
+  if (prog.encountersDone < def.encountersRequired) return;
+
+  // One-time reward grant, only the first time this dungeon is cleared.
+  if (!state.dungeonsCompleted[def.id]) {
     state.dungeonsCompleted[def.id] = true;
     if (def.reward.essence) state.essence += def.reward.essence;
     addJournal(`Vous achevez ${def.name} ! Récompense : ${def.reward.label}`);
   }
+
+  // Leaving the dungeon and resetting progress happens every time the
+  // required encounter count is reached, including repeat farming runs.
+  addJournal(`Vous quittez ${def.name}, votre objectif accompli.`);
+  state.isExploring = false;
+  state.dungeonProgress = {
+    dungeonId: null,
+    bar: 0,
+    encountersDone: 0,
+    inCombat: false,
+    monsterId: null,
+    monsterHp: 0,
+    monsterMaxHp: 0,
+  };
 }
 
 function resolveEncounter(def: DungeonDef) {

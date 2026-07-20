@@ -61,4 +61,41 @@ export const ACTIVE_TASKS: ActiveTaskDef[] = [
     skill: '',
     require: 'g.tier2>0',
   },
+
+  // ---------- Marché : vendre des ressources, sans coût en vigueur ----------
+  {
+    id: 'sell_herbs',
+    name: 'Vendre des herbes',
+    description: "Céder une brassée d'herbes à l'herboriste du marché.",
+    resource: 'gold',
+    baseAmount: 4,
+    cost: { herbs: 2 },
+    cooldown: 0.5,
+    skill: '',
+    require: '',
+  },
+  {
+    id: 'sell_gems',
+    name: 'Vendre des gemmes',
+    description: 'Négocier quelques gemmes auprès du joaillier.',
+    resource: 'gold',
+    baseAmount: 15,
+    cost: { gems: 3 },
+    cooldown: 4,
+    skill: '',
+    require: '',
+  },
+
+  // ---------- Échanger des ressources contre de la vigueur ----------
+  {
+    id: 'rest_inn',
+    name: "Se reposer à l'auberge",
+    description: 'Payer un lit et un repas chaud pour retrouver des forces.',
+    resource: 'energy',
+    baseAmount: 12,
+    cost: { gold: 8 },
+    cooldown: 5,
+    skill: '',
+    require: '',
+  },
 ];

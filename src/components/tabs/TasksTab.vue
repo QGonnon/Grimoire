@@ -28,6 +28,7 @@ const slots = computed(() => Array.from({ length: slotsAvailable() }, (_, i) => 
 const showPrestigeConfirm = ref(false);
 
 const availableSkills = computed(() => SKILLS.filter((s) => skillUnlocked(s.id)));
+const visibleActiveTasks = computed(() => ACTIVE_TASKS.filter((t) => activeTaskUnlocked(t.id)));
 
 function skillInOtherSlot(skillId: string, slot: number): boolean {
   return state.passiveAssignments.some((t, i) => t === skillId && i !== slot);
@@ -121,12 +122,7 @@ function shopEffectLabel(item: ShopItemDef): string {
         <span class="hint">Cliquez pour agir manuellement, contre un coût et un temps de repos.</span>
       </div>
       <div class="task-grid">
-        <div
-          v-for="task in ACTIVE_TASKS"
-          :key="task.id"
-          class="card"
-          :class="{ locked: !activeTaskUnlocked(task.id) }"
-        >
+        <div v-for="task in visibleActiveTasks" :key="task.id" class="card">
           <h3>{{ task.name }}</h3>
           <p class="desc">{{ task.description }}</p>
           <div class="stats">

@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { state, playerLevel, levelProgress, setPlayerName, tierMax, currentDay, alignmentLabel } from '../../composables/useGame';
 import { CLASS_MAP, TIER_LABELS } from '../../data/classes';
+import { SHOP_ITEMS } from '../../data/shop';
 import { formatNumber } from '../../utils/format';
+import { shopEffectLabel } from '../../utils/labels';
 import type { ClassId } from '../../types';
+
+const ownedShopItems = computed(() => SHOP_ITEMS.filter((item) => state.shopOwned[item.id]));
 
 const nameInput = ref(state.playerName);
 
@@ -70,6 +74,16 @@ const tierName = () => {
       <p class="desc" style="margin-top: 0.5rem">
         L'expérience de votre personnage provient de la somme des niveaux de toutes vos compétences.
       </p>
+    </div>
+
+    <div class="card">
+      <h3>Bonus acquis</h3>
+      <p v-if="ownedShopItems.length === 0" class="desc">
+        Aucun bonus de boutique acquis pour l'instant — direction l'onglet Tâches.
+      </p>
+      <ul v-else class="stats-list">
+        <li v-for="item in ownedShopItems" :key="item.id">{{ item.name }} — {{ shopEffectLabel(item) }}</li>
+      </ul>
     </div>
   </section>
 </template>

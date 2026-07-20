@@ -53,7 +53,7 @@ export const SKILLS: SkillDef[] = [
     unlockCost: { sp: 2 },
     cost: { energy: 0.2, gold: 1 },
     result: { sp: 0.15, arcana: 0.1 },
-    mod: {},
+    mod: { 'gold.max': 5 },
   },
   {
     id: 'conjuration',
@@ -151,7 +151,7 @@ export const SKILLS: SkillDef[] = [
     require: 'g.dissection>=3',
     unlockCost: {},
     cost: { energy: 0.5 },
-    result: { sp: 0.05 },
+    result: { sp: 0.05, bonedust: 0.5 },
     mod: { 'research.max': 1, 'shadow.rate': 0.01 },
   },
   {
@@ -472,7 +472,7 @@ export const SKILLS: SkillDef[] = [
     require: 'g.lore>=8',
     unlockCost: { arcana: 1 },
     cost: { energy: 0.5 },
-    result: {},
+    result: { mana: 0.2 },
     mod: { 'mana.max': 0.5, 'arcana.rate': 0.001 },
   },
   {

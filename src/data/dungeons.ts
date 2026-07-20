@@ -83,7 +83,12 @@ export const DUNGEONS: DungeonDef[] = [
     encountersRequired: 6,
     barSeconds: 10,
     energyCostPerSecond: 1.3,
-    loot: [{ resource: 'gold', min: 20, max: 30 }, { resource: 'spiritgem', min: 0, max: 1 }],
+    loot: [
+      { resource: 'gold', min: 20, max: 30 },
+      { resource: 'spiritgem', min: 0, max: 1 },
+      { resource: 'mana', min: 5, max: 15 },
+      { resource: 'bonedust', min: 1, max: 3 },
+    ],
     encounterIds: ALL_ENCOUNTERS,
     monsterIds: ['zombie', 'wraith'],
     bossId: 'wraith',

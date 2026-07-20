@@ -21,7 +21,8 @@ import { ACTIVE_TASKS } from '../../data/tasks';
 import { SHOP_ITEMS } from '../../data/shop';
 import { RESOURCE_MAP } from '../../data/resources';
 import { formatNumber } from '../../utils/format';
-import type { ResourceId, ShopItemDef } from '../../types';
+import { shopEffectLabel } from '../../utils/labels';
+import type { ResourceId } from '../../types';
 import ConfirmModal from '../ConfirmModal.vue';
 
 const slots = computed(() => Array.from({ length: slotsAvailable() }, (_, i) => i));
@@ -29,6 +30,7 @@ const showPrestigeConfirm = ref(false);
 
 const availableSkills = computed(() => SKILLS.filter((s) => skillUnlocked(s.id)));
 const visibleActiveTasks = computed(() => ACTIVE_TASKS.filter((t) => activeTaskUnlocked(t.id)));
+const availableShopItems = computed(() => SHOP_ITEMS.filter((item) => !state.shopOwned[item.id]));
 
 function skillInOtherSlot(skillId: string, slot: number): boolean {
   return state.passiveAssignments.some((t, i) => t === skillId && i !== slot);
@@ -66,17 +68,13 @@ function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${formatNumber(amt)}`).join('  ·  ');
 }
 
-function shopEffectLabel(item: ShopItemDef): string {
+function alignmentLabel(task: (typeof ACTIVE_TASKS)[number]): string {
   const parts: string[] = [];
-  for (const [res, amt] of Object.entries(item.effect.productionBonus ?? {}) as [ResourceId, number][]) {
-    parts.push(`${RESOURCE_MAP[res]?.name ?? res} +${Math.round(amt * 100)}%`);
-  }
-  if (item.effect.skillXpBonus) parts.push(`Apprentissage +${Math.round(item.effect.skillXpBonus * 100)}%`);
-  if (item.effect.eventSafety) parts.push(`Sécurité événementielle +${Math.round(item.effect.eventSafety * 100)}%`);
-  if (item.effect.energyCapBonus) parts.push(`Vigueur max +${formatNumber(item.effect.energyCapBonus)}`);
-  if (item.effect.unlocksPrestige) parts.push('Débloque la Réincarnation Arcanique');
-  return parts.length ? parts.join('  ·  ') : 'Aucun bonus direct';
+  if (task.virtueDelta) parts.push(`${task.virtueDelta > 0 ? '+' : ''}${task.virtueDelta} vertu`);
+  if (task.evilDelta) parts.push(`${task.evilDelta > 0 ? '+' : ''}${task.evilDelta} corruption`);
+  return parts.join('  ·  ');
 }
+
 </script>
 
 <template>
@@ -130,6 +128,9 @@ function shopEffectLabel(item: ShopItemDef): string {
             <span class="cost-negative">Coût : {{ costLabel(task.cost) }}</span>
             <span>Repos : {{ task.cooldown }}s</span>
           </div>
+          <p v-if="alignmentLabel(task)" class="desc" style="color: var(--ember); margin: 0 0 0.6rem">
+            {{ alignmentLabel(task) }}
+          </p>
           <div class="card-footer">
             <button class="btn" :disabled="!canRunActiveTask(task.id)" @click="runActiveTask(task.id)">
               {{ activeTaskCooldown(task.id) > 0 ? `Repos… ${activeTaskCooldown(task.id).toFixed(1)}s` : 'Agir' }}
@@ -146,10 +147,9 @@ function shopEffectLabel(item: ShopItemDef): string {
       </div>
       <div class="shop-grid">
         <div
-          v-for="item in SHOP_ITEMS"
+          v-for="item in availableShopItems"
           :key="item.id"
           class="card"
-          :class="{ owned: state.shopOwned[item.id] }"
         >
           <h3>{{ item.name }}</h3>
           <p class="desc">{{ item.description }}</p>
@@ -158,15 +158,14 @@ function shopEffectLabel(item: ShopItemDef): string {
           </div>
           <div class="card-footer">
             <span class="badge gold">{{ costLabel(item.cost) }}</span>
-            <button
-              class="btn btn-small"
-              :disabled="!!state.shopOwned[item.id] || !shopCanBuy(item.id)"
-              @click="buyShopItem(item.id)"
-            >
-              {{ state.shopOwned[item.id] ? 'Acquis' : 'Acheter' }}
+            <button class="btn btn-small" :disabled="!shopCanBuy(item.id)" @click="buyShopItem(item.id)">
+              Acheter
             </button>
           </div>
         </div>
+        <p v-if="availableShopItems.length === 0" class="desc">
+          Vous avez acquis tous les bonus de la boutique. Retrouvez-les dans votre profil.
+        </p>
       </div>
     </div>
 

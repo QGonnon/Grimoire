@@ -12,7 +12,7 @@ import { SKILLS, SKILL_MAP, xpForLevel, skillLevel } from '../../data/skills';
 import { RESOURCE_MAP, RESOURCE_IDS } from '../../data/resources';
 import { SKILL_IDS } from '../../data/skills';
 import { parseMods } from '../../engine/expr';
-import { formatNumber } from '../../utils/format';
+import { formatNumber, formatPercent } from '../../utils/format';
 import type { ModMap, ResourceId } from '../../types';
 
 function progressPercent(id: string): number {
@@ -40,10 +40,10 @@ function resultList(result: Partial<Record<ResourceId, number>>): string[] {
 function modList(mod: ModMap): string[] {
   const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
   const parts: string[] = [];
-  for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${Math.round(v * 100)}%`);
+  for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${formatPercent(v)}`);
   for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} max +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${formatNumber(v)}`);
-  for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${Math.round(v * 100)}%`);
+  for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${formatPercent(v)}`);
   return parts;
 }
 

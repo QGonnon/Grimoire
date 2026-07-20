@@ -57,6 +57,34 @@ export const SHOP_ITEMS: ShopItemDef[] = [
     cost: { research: 500 },
     effect: { unlocksPrestige: true },
   },
+  {
+    id: 'coin_chest',
+    name: 'Coffre en fer',
+    description: 'Un coffre robuste pour entreposer davantage d\'or.',
+    cost: { gold: 100 },
+    effect: { resourceCapBonus: { gold: 150 } },
+  },
+  {
+    id: 'vault',
+    name: 'Coffre-fort renforcé',
+    description: 'Des parois épaisses et une serrure arcanique pour un trésor grandissant.',
+    cost: { gold: 400, research: 50 },
+    effect: { resourceCapBonus: { gold: 500 } },
+  },
+  {
+    id: 'bookshelf',
+    name: 'Étagère de rangement',
+    description: 'De quoi archiver vos notes sans les entasser.',
+    cost: { research: 60 },
+    effect: { resourceCapBonus: { research: 100 } },
+  },
+  {
+    id: 'private_library',
+    name: 'Bibliothèque privée',
+    description: 'Une pièce entière dédiée à vos travaux de recherche.',
+    cost: { research: 300, gold: 100 },
+    effect: { resourceCapBonus: { research: 400 } },
+  },
 ];
 
 export const SHOP_MAP = Object.fromEntries(SHOP_ITEMS.map((s) => [s.id, s])) as Record<string, ShopItemDef>;

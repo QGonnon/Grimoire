@@ -78,6 +78,9 @@ export interface ActiveTaskDef {
   cooldown: number; // seconds
   skill: SkillId;
   require: string;
+  /** One-time alignment shift applied every time this task runs. */
+  virtueDelta?: number;
+  evilDelta?: number;
 }
 
 // 0 = Origine (Apprenti, métiers, Néophyte - the real game's pre-tier0 stage)
@@ -108,6 +111,7 @@ export interface ShopItemDef {
     skillXpBonus?: number;
     eventSafety?: number;
     energyCapBonus?: number;
+    resourceCapBonus?: Partial<Record<ResourceId, number>>;
     unlocksPrestige?: boolean;
   };
 }

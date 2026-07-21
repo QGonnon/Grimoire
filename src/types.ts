@@ -41,7 +41,10 @@ export interface ResourceDef {
 /** A dotted-path modifier map, adapted from Theory of Magic's mod system.
  *  Supported key shapes:
  *   - "<resourceId>.max"   -> flat bonus to that resource's cap
- *   - "<resourceId>.rate"  -> production-rate bonus (fraction, e.g. 0.1 = +10%)
+ *   - "<resourceId>.rate"  -> flat passive gain/loss of that resource, applied
+ *                             once per second regardless of source (classes,
+ *                             skills - scaled by level, homes, furniture -
+ *                             scaled by copies owned); see passiveResourceRates()
  *   - "<skillId>.max"      -> flat bonus to that skill's effective level
  *   - "<skillId>.rate"     -> bonus to that skill's XP gain rate (fraction)
  *   - "virtue" / "evilamt" -> one-time permanent alignment delta on acquisition
@@ -99,6 +102,37 @@ export interface ClassDef {
   cost: Partial<Record<ResourceId, number>>;
   mod: ModMap;
   secret?: boolean;
+}
+
+/** Adapted from Theory of Magic's home/furniture systems (data/homes.json,
+ *  data/furniture.json). Only one home is ever owned at a time - moving in
+ *  replaces whichever home you had before, mirroring the source game's
+ *  mutually-exclusive "disable" groups. `spaceMax` is the furniture capacity
+ *  a home grants; furniture pieces each cost some of that capacity via
+ *  `spaceCost`, gating how much you can furnish a given home with. */
+export interface HomeDef {
+  id: string;
+  name: string;
+  description: string;
+  flavor?: string;
+  require: string;
+  requirementLabel: string;
+  cost: Partial<Record<ResourceId, number>>;
+  spaceMax: number;
+  mod: ModMap;
+}
+
+export interface FurnitureDef {
+  id: string;
+  name: string;
+  description: string;
+  require: string;
+  requirementLabel: string;
+  cost: Partial<Record<ResourceId, number>>;
+  spaceCost: number;
+  /** Max copies ownable; unlimited (space/cost permitting) if omitted. */
+  maxCount?: number;
+  mod: ModMap;
 }
 
 export interface ShopItemDef {
@@ -211,6 +245,8 @@ export interface GameState {
   skillsUnlocked: Partial<Record<SkillId, boolean>>;
   classesOwned: Partial<Record<ClassId, boolean>>;
   shopOwned: Partial<Record<ShopItemId, boolean>>;
+  homeOwned: string | null;
+  furnitureOwned: Record<string, number>;
   passiveAssignments: (string | null)[]; // slot -> skill id
   activeCooldowns: Record<string, number>; // task id -> seconds remaining
   /** Dual alignment meters, as in Theory of Magic (virtue vs evilamt), replacing

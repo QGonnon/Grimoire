@@ -8,6 +8,7 @@ import {
   slotsAvailable,
   ownedClassIds,
   alignmentLabel,
+  passiveResourceRates,
 } from '../composables/useGame';
 import { RESOURCES } from '../data/resources';
 import { SKILL_MAP } from '../data/skills';
@@ -37,6 +38,11 @@ const passiveRates = computed(() => {
     for (const [res, amt] of Object.entries(def.result) as [ResourceId, number][]) {
       rates[res] = (rates[res] ?? 0) + amt * productionMultiplier(res, skillId);
     }
+  }
+  // Home/furniture passive gains (and drains, e.g. rent) tick independently
+  // of any assigned skill - fold them into the same "+X/s" indicator.
+  for (const [res, amt] of Object.entries(passiveResourceRates()) as [ResourceId, number][]) {
+    rates[res] = (rates[res] ?? 0) + amt;
   }
   return rates;
 });

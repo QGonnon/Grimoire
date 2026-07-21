@@ -37,10 +37,16 @@ function resultList(result: Partial<Record<ResourceId, number>>): string[] {
   return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? res} +${formatNumber(amt)}`);
 }
 
+// A resource ".rate" mod is a flat passive gain/loss applied every second per
+// skill level (see passiveResourceRates() in useGame.ts), not a percentage
+// bonus - displayed here as "+X/s" accordingly, consistent with the "per
+// level" framing of this list.
 function modList(mod: ModMap): string[] {
   const parsed = parseMods(mod, RESOURCE_IDS, SKILL_IDS);
   const parts: string[] = [];
-  for (const [id, v] of Object.entries(parsed.resourceRate)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} +${formatPercent(v)}`);
+  for (const [id, v] of Object.entries(parsed.resourceRate)) {
+    parts.push(`${RESOURCE_MAP[id]?.symbol ?? ''} ${RESOURCE_MAP[id]?.name ?? id} ${v >= 0 ? '+' : ''}${formatNumber(v)}/s`);
+  }
   for (const [id, v] of Object.entries(parsed.resourceMax)) parts.push(`${RESOURCE_MAP[id]?.name ?? id} max +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillMax)) parts.push(`${SKILL_MAP[id]?.name ?? id} niveau +${formatNumber(v)}`);
   for (const [id, v] of Object.entries(parsed.skillRate)) parts.push(`${SKILL_MAP[id]?.name ?? id} apprentissage +${formatPercent(v)}`);

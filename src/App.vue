@@ -10,15 +10,17 @@ import TasksTab from './components/tabs/TasksTab.vue';
 import SkillsTab from './components/tabs/SkillsTab.vue';
 import ClassesTab from './components/tabs/ClassesTab.vue';
 import DungeonsTab from './components/tabs/DungeonsTab.vue';
+import HomeTab from './components/tabs/HomeTab.vue';
 import SaveTab from './components/tabs/SaveTab.vue';
 
-type TabId = 'profile' | 'tasks' | 'skills' | 'classes' | 'dungeons' | 'save';
+type TabId = 'profile' | 'tasks' | 'skills' | 'classes' | 'dungeons' | 'home' | 'save';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'tasks', label: 'Tâches' },
   { id: 'skills', label: 'Compétences' },
   { id: 'classes', label: 'Classes' },
   { id: 'dungeons', label: 'Donjons' },
+  { id: 'home', label: 'Logis' },
   { id: 'profile', label: 'Profil' },
   { id: 'save', label: 'Sauvegarde' },
 ];
@@ -57,6 +59,7 @@ onUnmounted(stopGameLoop);
         <div v-show="activeTab === 'skills'"><SkillsTab /></div>
         <div v-show="activeTab === 'classes'"><ClassesTab /></div>
         <div v-show="activeTab === 'dungeons'"><DungeonsTab /></div>
+        <div v-show="activeTab === 'home'"><HomeTab /></div>
         <div v-show="activeTab === 'save'"><SaveTab /></div>
       </main>
       <JournalSidebar />

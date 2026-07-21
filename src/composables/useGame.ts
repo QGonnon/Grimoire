@@ -13,10 +13,12 @@ import { ACTIVE_TASKS } from '../data/tasks';
 import { CLASSES, CLASS_MAP, CLASS_IDS } from '../data/classes';
 import { SHOP_ITEMS, SHOP_MAP } from '../data/shop';
 import { DUNGEONS, DUNGEON_MAP } from '../data/dungeons';
+import { HOMES, HOME_MAP } from '../data/homes';
+import { FURNITURE, FURNITURE_MAP } from '../data/furniture';
 import { EVENTS, EVENT_MAP } from '../data/events';
 import { MONSTER_MAP } from '../data/monsters';
 import { ENCOUNTER_MAP } from '../data/encounters';
-import { evalExpr, parseMods, type ParsedMods } from '../engine/expr';
+import { evalExpr, parseMods, parseModValue, type ParsedMods } from '../engine/expr';
 import { formatNumber } from '../utils/format';
 
 const SAVE_KEY = 'grimoire_save_v2';
@@ -37,6 +39,8 @@ function createInitialState(): GameState {
     skillsUnlocked: {},
     classesOwned: {},
     shopOwned: {},
+    homeOwned: 'alcove',
+    furnitureOwned: {},
     passiveAssignments: [null],
     activeCooldowns: {},
     virtue: 0,
@@ -128,6 +132,8 @@ function buildG(): Record<string, unknown> {
   g.good3 = state.virtue >= 300 ? 1 : 0;
   g.player = { level: playerLevel() };
   for (const id of RESOURCE_IDS) g[id] = state.resources[id] ?? 0;
+  g.spaceMax = homeSpaceMax();
+  g.space = furnitureSpaceUsed();
   return g;
 }
 
@@ -164,10 +170,34 @@ function scaleMods(mods: ParsedMods, factor: number): ParsedMods {
   };
 }
 
+// A mod's resource ".max" (cap) and skill ".rate"/".max" entries feed the
+// generic aggregation below and productionMultiplier()'s lvl-based bonus; a
+// mod's resource ".rate" entries never do - across every source (classes,
+// skills, homes, furniture) they're a flat passive gain/loss applied once per
+// tick instead (see passiveResourceRates()), since "how much of this resource
+// do I get for free every second" doesn't depend on anything being actively
+// produced. `noResourceRate` strips that bucket after parsing so it can't
+// leak into the % multiplier by accident.
+function noResourceRate(parsed: ParsedMods): ParsedMods {
+  return { ...parsed, resourceRate: {} };
+}
+
 function getAggregatedMods(): ParsedMods {
   const combined: ParsedMods = { resourceMax: {}, resourceRate: {}, skillMax: {}, skillRate: {}, virtue: 0, evilamt: 0 };
   // Class mods are flat - classes don't have levels, just owned/not owned.
-  for (const id of ownedClassIds()) mergeMods(combined, parseMods(CLASS_MAP[id].mod, RESOURCE_IDS, SKILL_IDS));
+  for (const id of ownedClassIds()) mergeMods(combined, noResourceRate(parseMods(CLASS_MAP[id].mod, RESOURCE_IDS, SKILL_IDS)));
+  if (state.homeOwned) {
+    const home = HOME_MAP[state.homeOwned];
+    if (home) mergeMods(combined, noResourceRate(parseMods(home.mod, RESOURCE_IDS, SKILL_IDS)));
+  }
+  // Furniture mods scale with how many copies of that piece you own.
+  for (const id of Object.keys(state.furnitureOwned)) {
+    const count = state.furnitureOwned[id] ?? 0;
+    if (count <= 0) continue;
+    const def = FURNITURE_MAP[id];
+    if (!def) continue;
+    mergeMods(combined, noResourceRate(scaleMods(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS), count)));
+  }
   // Skill mods scale with the skill's own current level, applied retroactively:
   // as a skill levels up, its contribution to caps/rates grows immediately,
   // it isn't frozen at whatever it was when the skill was first unlocked.
@@ -178,9 +208,40 @@ function getAggregatedMods(): ParsedMods {
     const def = SKILL_MAP[id];
     if (!def) continue;
     const level = skillLevel(state.skillXp[id] ?? 0);
-    mergeMods(combined, scaleMods(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS), level));
+    mergeMods(combined, noResourceRate(scaleMods(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS), level)));
   }
   return combined;
+}
+
+/** Flat per-second gain/loss for each resource, sourced from every source's
+ *  resource ".rate" mod entries - classes and unlocked skills (skills scale
+ *  with their current level, same as in getAggregatedMods), plus the current
+ *  home and owned furniture (furniture scales with copies owned). Skill
+ *  ".rate" entries on the same items are unaffected - those still feed the
+ *  normal skill-xp-rate bonus via getAggregatedMods/skillXpMultiplier. */
+export function passiveResourceRates(): Partial<Record<ResourceId, number>> {
+  const result: Partial<Record<ResourceId, number>> = {};
+  const addFrom = (mod: Record<string, number | string> | undefined, factor: number) => {
+    if (!mod) return;
+    for (const [key, raw] of Object.entries(mod)) {
+      const parts = key.split('.');
+      if (parts.length !== 2 || parts[1] !== 'rate' || !RESOURCE_IDS.has(parts[0])) continue;
+      result[parts[0]] = (result[parts[0]] ?? 0) + parseModValue(raw) * factor;
+    }
+  };
+  for (const id of ownedClassIds()) addFrom(CLASS_MAP[id].mod, 1);
+  for (const id of Object.keys(state.skillsUnlocked) as SkillId[]) {
+    if (!state.skillsUnlocked[id]) continue;
+    const def = SKILL_MAP[id];
+    if (!def) continue;
+    addFrom(def.mod, skillLevel(state.skillXp[id] ?? 0));
+  }
+  if (state.homeOwned) addFrom(HOME_MAP[state.homeOwned]?.mod, 1);
+  for (const id of Object.keys(state.furnitureOwned)) {
+    const count = furnitureCount(id);
+    if (count > 0) addFrom(FURNITURE_MAP[id]?.mod, count);
+  }
+  return result;
 }
 
 export function effectiveSkillLevel(id: SkillId): number {
@@ -245,9 +306,8 @@ export function eventSafetyBonus(): number {
 }
 
 export function productionMultiplier(resource: ResourceId, skillId: SkillId | ''): number {
-  const mods = getAggregatedMods();
   const lvl = skillId ? effectiveSkillLevel(skillId) : 0;
-  return 1 + lvl * 0.02 + (mods.resourceRate[resource] ?? 0) + shopBonusFor(resource) + dungeonBonusFor(resource) + state.essence * 0.05;
+  return 1 + lvl * 0.02 + shopBonusFor(resource) + dungeonBonusFor(resource) + state.essence * 0.05;
 }
 
 function skillXpMultiplier(skillId: SkillId): number {
@@ -396,6 +456,88 @@ export function buyClass(id: ClassId) {
   applyAlignmentDeltas(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS));
   syncPassiveSlots();
   addJournal(`Vous embrassez la voie de : ${def.name}.`);
+}
+
+// ---------- Homes & Furniture ----------
+
+export function homeSpaceMax(): number {
+  return state.homeOwned ? HOME_MAP[state.homeOwned]?.spaceMax ?? 0 : 0;
+}
+
+export function furnitureCount(id: string): number {
+  return state.furnitureOwned[id] ?? 0;
+}
+
+export function furnitureSpaceUsed(): number {
+  let total = 0;
+  for (const id of Object.keys(state.furnitureOwned)) {
+    total += furnitureCount(id) * (FURNITURE_MAP[id]?.spaceCost ?? 0);
+  }
+  return total;
+}
+
+export function spaceAvailable(): number {
+  return Math.max(0, homeSpaceMax() - furnitureSpaceUsed());
+}
+
+export function homeRequirementMet(id: string): boolean {
+  const def = HOME_MAP[id];
+  if (!def) return false;
+  return evalExpr(def.require, buildG());
+}
+
+export function homeCanBuy(id: string): boolean {
+  const def = HOME_MAP[id];
+  if (!def || state.homeOwned === id) return false;
+  return homeRequirementMet(id) && canAfford(def.cost);
+}
+
+export function buyHome(id: string) {
+  const def = HOME_MAP[id];
+  if (!def || !homeCanBuy(id)) return;
+  spend(def.cost);
+  state.homeOwned = id;
+  addJournal(`Vous emménagez : ${def.name}.`);
+}
+
+export function furnitureRequirementMet(id: string): boolean {
+  const def = FURNITURE_MAP[id];
+  if (!def) return false;
+  return evalExpr(def.require, buildG());
+}
+
+export function furnitureCanBuy(id: string): boolean {
+  const def = FURNITURE_MAP[id];
+  if (!def) return false;
+  if (def.maxCount !== undefined && furnitureCount(id) >= def.maxCount) return false;
+  if (spaceAvailable() < def.spaceCost) return false;
+  return furnitureRequirementMet(id) && canAfford(def.cost);
+}
+
+export function buyFurniture(id: string) {
+  const def = FURNITURE_MAP[id];
+  if (!def || !furnitureCanBuy(id)) return;
+  spend(def.cost);
+  state.furnitureOwned[id] = furnitureCount(id) + 1;
+  applyAlignmentDeltas(parseMods(def.mod, RESOURCE_IDS, SKILL_IDS));
+  addJournal(`Vous installez : ${def.name}.`);
+}
+
+export function canUninstallFurniture(id: string): boolean {
+  return furnitureCount(id) > 0;
+}
+
+/** Uninstalling refunds half the original cost, mirroring the source game's
+ *  furniture resale (50% of purchase price) - no equivalent "un-corruption"
+ *  for the one-time virtue/evilamt granted on purchase, which stays permanent. */
+export function uninstallFurniture(id: string) {
+  const def = FURNITURE_MAP[id];
+  if (!def || !canUninstallFurniture(id)) return;
+  const count = furnitureCount(id);
+  if (count <= 1) delete state.furnitureOwned[id];
+  else state.furnitureOwned[id] = count - 1;
+  for (const [res, amt] of Object.entries(def.cost) as [ResourceId, number][]) addResource(res, amt * 0.5);
+  addJournal(`Vous désinstallez : ${def.name}.`);
 }
 
 // ---------- Shop ----------
@@ -671,6 +813,12 @@ export function tick() {
   // soft-locks on "no energy, no way to earn energy".
   addResource('energy', 0.6 * (1 + state.essence * 0.05));
 
+  // Passive home/furniture gains and drains (e.g. rent, a bonfire's trickle
+  // of fire) apply every tick regardless of active skill practice.
+  for (const [res, amt] of Object.entries(passiveResourceRates()) as [ResourceId, number][]) {
+    addResource(res, amt);
+  }
+
   for (const skillId of state.passiveAssignments) {
     if (!skillId) continue;
     const def = SKILL_MAP[skillId];
@@ -707,4 +855,4 @@ export function stopGameLoop() {
   loopHandle = null;
 }
 
-export { SKILLS, ACTIVE_TASKS, CLASSES, SHOP_ITEMS, DUNGEONS, EVENT_MAP, MONSTER_MAP, ENCOUNTER_MAP };
+export { SKILLS, ACTIVE_TASKS, CLASSES, SHOP_ITEMS, DUNGEONS, HOMES, FURNITURE, EVENT_MAP, MONSTER_MAP, ENCOUNTER_MAP };

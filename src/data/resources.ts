@@ -21,14 +21,14 @@ export const RESOURCES: ResourceDef[] = [
 
   // Manas
   { id: 'mana', name: 'Mana', symbol: '☾', category: 'mana', baseCap: 150, color: '#7fb3c9' },
-  { id: 'fire', name: 'Mana de Feu', symbol: '🜂', category: 'mana', baseCap: 0, color: '#c1603c' },
-  { id: 'water', name: "Mana d'Eau", symbol: '🜄', category: 'mana', baseCap: 0, color: '#5a9bc7' },
-  { id: 'air', name: "Mana d'Air", symbol: '🜁', category: 'mana', baseCap: 0, color: '#b7d3d9' },
-  { id: 'earth', name: 'Mana de Terre', symbol: '🜃', category: 'mana', baseCap: 0, color: '#8a6f4b' },
-  { id: 'nature', name: 'Mana de Nature', symbol: '❦', category: 'mana', baseCap: 0, color: '#7fa25c' },
-  { id: 'shadow', name: "Mana d'Ombre", symbol: '☠', category: 'mana', baseCap: 0, color: '#6a5a8c' },
-  { id: 'light', name: 'Mana de Lumière', symbol: '☀', category: 'mana', baseCap: 0, color: '#e8d98a' },
-  { id: 'spirit', name: "Mana d'Esprit", symbol: '☯', category: 'mana', baseCap: 0, color: '#a99fc0' },
+  { id: 'fire', name: 'Feu', symbol: '🜂', category: 'mana', baseCap: 0, color: '#c1603c' },
+  { id: 'water', name: "Eau", symbol: '🜄', category: 'mana', baseCap: 0, color: '#5a9bc7' },
+  { id: 'air', name: "Air", symbol: '🜁', category: 'mana', baseCap: 0, color: '#b7d3d9' },
+  { id: 'earth', name: 'Terre', symbol: '🜃', category: 'mana', baseCap: 0, color: '#8a6f4b' },
+  { id: 'nature', name: 'Nature', symbol: '❦', category: 'mana', baseCap: 0, color: '#7fa25c' },
+  { id: 'shadow', name: "Ombre", symbol: '☠', category: 'mana', baseCap: 0, color: '#6a5a8c' },
+  { id: 'light', name: 'Lumière', symbol: '☀', category: 'mana', baseCap: 0, color: '#e8d98a' },
+  { id: 'spirit', name: "Esprit", symbol: '☯', category: 'mana', baseCap: 0, color: '#a99fc0' },
 
   // Knowledge / books
   { id: 'scrolls', name: 'Parchemins', symbol: '📜', category: 'knowledge', baseCap: 0, uncapped: true, color: '#c9a24b' },

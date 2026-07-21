@@ -50,6 +50,7 @@ function createInitialState(): GameState {
       bar: 0,
       encountersDone: 0,
       inCombat: false,
+      isBoss: false,
       monsterId: null,
       monsterHp: 0,
       monsterMaxHp: 0,
@@ -190,7 +191,7 @@ export function effectiveSkillLevel(id: SkillId): number {
 
 export function energyCap(): number {
   const mods = getAggregatedMods();
-  let cap = RESOURCE_MAP.energy.baseCap + (mods.resourceMax.energy ?? 0);
+  let cap = RESOURCE_MAP.energy.baseCap + (mods.resourceMax.energy ?? 0) + shopCapBonusFor('energy');
   if (state.shopOwned.stamina_reserve) cap += 20;
   return Math.max(0, cap);
 }
@@ -201,7 +202,7 @@ export function resourceCap(id: ResourceId): number {
   if (!def) return 0;
   if (def.uncapped) return Number.MAX_SAFE_INTEGER;
   const mods = getAggregatedMods();
-  return Math.max(0, def.baseCap + (mods.resourceMax[id] ?? 0));
+  return Math.max(0, def.baseCap + (mods.resourceMax[id] ?? 0) + shopCapBonusFor(id));
 }
 
 /** Uncapped (inventory-style) resources reveal once first obtained; capped
@@ -210,6 +211,15 @@ export function resourceUnlocked(id: ResourceId): boolean {
   const def = RESOURCE_MAP[id];
   if (def?.uncapped) return state.resources[id] > 0;
   return resourceCap(id) > 0 || state.resources[id] > 0;
+}
+
+function shopCapBonusFor(resource: ResourceId): number {
+  let total = 0;
+  for (const id of Object.keys(state.shopOwned) as ShopItemId[]) {
+    if (!state.shopOwned[id]) continue;
+    total += SHOP_MAP[id]?.effect.resourceCapBonus?.[resource] ?? 0;
+  }
+  return total;
 }
 
 function shopBonusFor(resource: ResourceId): number {
@@ -359,6 +369,8 @@ export function runActiveTask(taskId: string) {
   const mult = productionMultiplier(task.resource, task.skill as SkillId | '');
   addResource(task.resource, task.baseAmount * mult);
   if (task.skill) addSkillXp(task.skill, 1);
+  if (task.virtueDelta) state.virtue = clamp(state.virtue + task.virtueDelta, 0, 999);
+  if (task.evilDelta) state.evilamt = clamp(state.evilamt + task.evilDelta, 0, 999);
   state.activeCooldowns[taskId] = task.cooldown;
 }
 
@@ -420,6 +432,7 @@ export function switchDungeon(id: string) {
       bar: 0,
       encountersDone: 0,
       inCombat: false,
+      isBoss: false,
       monsterId: null,
       monsterHp: 0,
       monsterMaxHp: 0,
@@ -458,6 +471,7 @@ function checkDungeonCompletion(def: DungeonDef) {
     bar: 0,
     encountersDone: 0,
     inCombat: false,
+    isBoss: false,
     monsterId: null,
     monsterHp: 0,
     monsterMaxHp: 0,
@@ -478,6 +492,7 @@ function resolveEncounter(def: DungeonDef) {
     }
     const hp = isBossFight ? Math.round(monster.hp * 1.5) : monster.hp;
     prog.inCombat = true;
+    prog.isBoss = isBossFight;
     prog.monsterId = monsterId;
     prog.monsterMaxHp = hp;
     prog.monsterHp = hp;
@@ -517,11 +532,20 @@ function tickDungeon() {
     prog.monsterHp -= playerPower();
     if (prog.monsterHp <= 0) {
       const monster = prog.monsterId ? MONSTER_MAP[prog.monsterId] : null;
+      const rolls = prog.isBoss ? 2 : 1;
+      const gained: Partial<Record<ResourceId, number>> = {};
+      for (let i = 0; i < rolls && def.loot.length > 0; i++) {
+        const entry = def.loot[Math.floor(Math.random() * def.loot.length)];
+        const amount = entry.min + Math.random() * (entry.max - entry.min);
+        addResource(entry.resource, amount);
+        gained[entry.resource] = (gained[entry.resource] ?? 0) + amount;
+      }
       prog.inCombat = false;
+      prog.isBoss = false;
       prog.monsterId = null;
       prog.encountersDone++;
       prog.bar = 0;
-      addJournal(`Vous triomphez de ${monster?.name ?? 'la créature'} dans ${def.name}.`);
+      addJournal(`Vous triomphez de ${monster?.name ?? 'la créature'} dans ${def.name}.${gainsLabel(gained)}`);
       checkDungeonCompletion(def);
     }
     return;

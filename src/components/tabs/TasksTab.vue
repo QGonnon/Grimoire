@@ -44,7 +44,7 @@ function resultLabel(skillId: string): string {
   if (!def) return '';
   const entries = Object.entries(def.result) as [ResourceId, number][];
   if (entries.length === 0) return '';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} +${formatNumber(amt * productionMultiplier(res, skillId))}/s`).join('  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${RESOURCE_MAP[res]?.name ?? res} +${formatNumber(amt * productionMultiplier(res, skillId))}/s`).join('  ');
 }
 
 function skillCostLabel(skillId: string): string {
@@ -52,7 +52,7 @@ function skillCostLabel(skillId: string): string {
   if (!def) return '';
   const entries = Object.entries(def.cost) as [ResourceId, number][];
   if (entries.length === 0) return '';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} -${formatNumber(amt)}/s`).join('  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${RESOURCE_MAP[res]?.name ?? res} -${formatNumber(amt)}/s`).join('  ');
 }
 
 function slotOptionLabel(skillId: string): string {
@@ -63,7 +63,7 @@ function slotOptionLabel(skillId: string): string {
 function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   const entries = Object.entries(cost) as [ResourceId, number][];
   if (entries.length === 0) return 'Gratuit';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${formatNumber(amt)}`).join('  ·  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${RESOURCE_MAP[res]?.name ?? res} ${formatNumber(amt)}`).join('  ·  ');
 }
 
 function shopEffectLabel(item: ShopItemDef): string {
@@ -126,7 +126,7 @@ function shopEffectLabel(item: ShopItemDef): string {
           <h3>{{ task.name }}</h3>
           <p class="desc">{{ task.description }}</p>
           <div class="stats">
-            <span>Gain : {{ RESOURCE_MAP[task.resource]?.symbol }} +{{ formatNumber(task.baseAmount * productionMultiplier(task.resource, (task.skill || '') as any)) }}</span>
+            <span>Gain : {{ RESOURCE_MAP[task.resource]?.symbol }} {{ RESOURCE_MAP[task.resource]?.name }} +{{ formatNumber(task.baseAmount * productionMultiplier(task.resource, (task.skill || '') as any)) }}</span>
             <span class="cost-negative">Coût : {{ costLabel(task.cost) }}</span>
             <span>Repos : {{ task.cooldown }}s</span>
           </div>

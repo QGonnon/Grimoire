@@ -11,7 +11,7 @@ import type { ResourceId } from '../../types';
 function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   const entries = Object.entries(cost) as [ResourceId, number][];
   if (entries.length === 0) return 'Gratuit';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? '?'} ${formatNumber(amt)}`).join('  ·  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? '?'} ${RESOURCE_MAP[res]?.name ?? res} ${formatNumber(amt)}`).join('  ·  ');
 }
 
 function bonusLabel(mod: Record<string, number | string>): string {

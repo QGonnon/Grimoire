@@ -25,7 +25,7 @@ const activeMonster = computed(() =>
 );
 
 function lootLabel(def: (typeof DUNGEONS)[number]): string {
-  return def.loot.map((l) => `${RESOURCE_MAP[l.resource]?.symbol ?? '?'} ${formatNumber(l.min)}-${formatNumber(l.max)}`).join('  ·  ');
+  return def.loot.map((l) => `${RESOURCE_MAP[l.resource]?.symbol ?? '?'} ${RESOURCE_MAP[l.resource]?.name ?? l.resource} ${formatNumber(l.min)}-${formatNumber(l.max)}`).join('  ·  ');
 }
 
 function bossName(def: (typeof DUNGEONS)[number]): string {

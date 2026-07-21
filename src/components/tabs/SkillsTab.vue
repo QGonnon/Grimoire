@@ -27,7 +27,7 @@ function progressPercent(id: string): number {
 function costLabel(cost: Partial<Record<ResourceId, number>>): string {
   const entries = Object.entries(cost) as [ResourceId, number][];
   if (entries.length === 0) return 'Gratuit';
-  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${formatNumber(amt)}`).join('  ·  ');
+  return entries.map(([res, amt]) => `${RESOURCE_MAP[res]?.symbol ?? ''} ${RESOURCE_MAP[res]?.name ?? res} ${formatNumber(amt)}`).join('  ·  ');
 }
 
 const visibleSkills = computed(() => SKILLS.filter((s) => skillUnlocked(s.id) || skillRequirementMet(s.id)));
